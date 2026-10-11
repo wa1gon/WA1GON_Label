@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="OpenLabel.App.MainWindow" Title="OpenLabel" Width="900" Height="560" MinWidth="700" MinHeight="420">
+  <Grid ColumnDefinitions="300,*" RowDefinitions="*,Auto" Margin="18" ColumnSpacing="24" RowSpacing="12">
+    <StackPanel Grid.Column="0" Spacing="12">
+      <TextBlock Text="OpenLabel" FontSize="26" FontWeight="Bold" />
+      <TextBlock Text="Milestone 1 · CUPS label printing" Foreground="Gray" />
+      <TextBlock Text="Printer" FontWeight="SemiBold" />
+      <ComboBox Name="PrinterSelector" MinHeight="36" />
+      <Button Name="RefreshButton" Content="Refresh printers" Click="RefreshClicked" />
+      <TextBlock Text="Label size" FontWeight="SemiBold" />
+      <TextBlock Text="3.5 × 1 inches (88.9 × 25.4 mm)" />
+      <TextBlock Text="Label text" FontWeight="SemiBold" />
+      <TextBox Name="LabelTextInput" Text="Hello from OpenLabel" TextChanged="TextChanged" />
+      <TextBlock Text="Copies" FontWeight="SemiBold" />
+      <NumericUpDown Name="CopiesInput" Minimum="1" Maximum="100" Value="1" Increment="1" />
+      <Button Name="PrintButton" Content="Print label" Click="PrintClicked" MinHeight="42" />
+      <TextBlock Name="StatusText" Text="Ready" TextWrapping="Wrap" />
+    </StackPanel>
+    <Border Grid.Column="1" Background="#EDEFF1" CornerRadius="10" Padding="22">
+      <StackPanel VerticalAlignment="Center" Spacing="18">
+        <TextBlock Text="Label preview" FontSize="18" FontWeight="SemiBold" Foreground="#30343A" HorizontalAlignment="Center" />
+        <Border Background="White" BorderBrush="#ADB4BB" BorderThickness="1" Width="500" Height="143" MaxWidth="500" HorizontalAlignment="Center" CornerRadius="2" Padding="22">
+          <TextBlock Name="PreviewText" Text="Hello from OpenLabel" FontSize="22" Foreground="Black" TextWrapping="Wrap" VerticalAlignment="Center" />
+        </Border>
+        <TextBlock Text="Preview is illustrative; actual printer output depends on CUPS queue settings." Foreground="#515B66" TextWrapping="Wrap" HorizontalAlignment="Center" />
+      </StackPanel>
+    </Border>
+    <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="OpenLabel · Printer-independent document model · Linux CUPS backend" Foreground="Gray" />
+  </Grid>
+</Window>
