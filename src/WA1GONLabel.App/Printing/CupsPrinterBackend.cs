@@ -75,37 +75,64 @@ public sealed class CupsPrinterBackend : IPrinterBackend
     }
 }
 
-// Dependency-free proof-of-concept PDF. Supports basic ASCII Helvetica text only.
+// Dependency-free proof-of-concept PDF. Supports basic ASCII and Helvetica variants only.
 // Later milestones will replace this with a proper rendering pipeline.
 internal static class MinimalPdfRenderer
 {
+    private record FontDef(string Name, string BaseFont);
+
     public static byte[] Render(LabelDocument label)
     {
         static string Num(double n) => n.ToString("0.###", CultureInfo.InvariantCulture);
         static string Escape(string s) => s.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
+        static string FontName(bool bold, bool italic) => (bold, italic) switch
+        {
+            (true, true) => "F4",
+            (true, false) => "F2",
+            (false, true) => "F3",
+            (false, false) => "F1"
+        };
+
         var w = label.WidthMm * 72 / 25.4;
         var h = label.HeightMm * 72 / 25.4;
+
+        var fonts = new[]
+        {
+            new FontDef("F1", "Helvetica"),
+            new FontDef("F2", "Helvetica-Bold"),
+            new FontDef("F3", "Helvetica-Oblique"),
+            new FontDef("F4", "Helvetica-BoldOblique")
+        };
+
+        var resourceEntries = string.Join(" ", fonts.Select((f, i) => $"/{f.Name} {4 + i} 0 R"));
+        var contentObjectNumber = 4 + fonts.Length;
+
         var stream = new StringBuilder();
         foreach (var item in label.TextItems)
         {
             var x = item.Xmm * 72 / 25.4;
             var y = h - item.Ymm * 72 / 25.4 - item.FontSizePt;
             var safe = new string(item.Text.Where(c => c >= 32 && c <= 126).ToArray());
-            stream.AppendLine($"BT /F1 {Num(item.FontSizePt)} Tf 1 0 0 1 {Num(x)} {Num(y)} Tm ({Escape(safe)}) Tj ET");
+            stream.AppendLine($"BT /{FontName(item.IsBold, item.IsItalic)} {Num(item.FontSizePt)} Tf 1 0 0 1 {Num(x)} {Num(y)} Tm ({Escape(safe)}) Tj ET");
         }
+
         var content = Encoding.ASCII.GetBytes(stream.ToString());
-        var objects = new[] {
+
+        var objects = new List<string>
+        {
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {Num(w)} {Num(h)}] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
-            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-            $"<< /Length {content.Length} >>\nstream\n{stream}endstream"
+            $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {Num(w)} {Num(h)}] /Resources << /Font << {resourceEntries} >> >> /Contents {contentObjectNumber} 0 R >>",
         };
+        foreach (var font in fonts)
+            objects.Add($"<< /Type /Font /Subtype /Type1 /BaseFont /{font.BaseFont} >>");
+        objects.Add($"<< /Length {content.Length} >>\nstream\n{stream}endstream");
+
         using var buffer = new MemoryStream();
         void Write(string s) { var b = Encoding.ASCII.GetBytes(s); buffer.Write(b); }
         Write("%PDF-1.4\n");
         var offsets = new List<long> { 0 };
-        for (var i = 0; i < objects.Length; i++) { offsets.Add(buffer.Position); Write($"{i + 1} 0 obj\n{objects[i]}\nendobj\n"); }
+        for (var i = 0; i < objects.Count; i++) { offsets.Add(buffer.Position); Write($"{i + 1} 0 obj\n{objects[i]}\nendobj\n"); }
         var xref = buffer.Position;
         Write($"xref\n0 {offsets.Count}\n0000000000 65535 f \n");
         foreach (var offset in offsets.Skip(1)) Write($"{offset:0000000000} 00000 n \n");

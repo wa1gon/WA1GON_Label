@@ -13,8 +13,19 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        if (PreviewText is not null && _label.TextItems.Count > 0)
-            _label.TextItems[0].Text = PreviewText.Text ?? "";
+        if (_label.TextItems.Count > 0)
+        {
+            var item = _label.TextItems[0];
+            if (PreviewText is not null)
+                PreviewText.Text = item.Text;
+            ApplyPreviewFormatting(item);
+            if (FontSizeInput is not null)
+                FontSizeInput.Value = (decimal)item.FontSizePt;
+            if (BoldCheck is not null)
+                BoldCheck.IsChecked = item.IsBold;
+            if (ItalicCheck is not null)
+                ItalicCheck.IsChecked = item.IsItalic;
+        }
         Opened += async (_, _) => await RefreshPrintersAsync();
     }
 
@@ -40,6 +51,35 @@ public partial class MainWindow : Window
     {
         if (PreviewText is null || _label.TextItems.Count == 0) return;
         _label.TextItems[0].Text = PreviewText.Text ?? "";
+    }
+
+    private void FormatChanged(object? sender, RoutedEventArgs e)
+    {
+        if (_label.TextItems.Count == 0) return;
+        ApplyFormatToDocument();
+    }
+
+    private void FormatChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (_label.TextItems.Count == 0) return;
+        ApplyFormatToDocument();
+    }
+
+    private void ApplyFormatToDocument()
+    {
+        var item = _label.TextItems[0];
+        item.FontSizePt = (double)(FontSizeInput?.Value ?? 14);
+        item.IsBold = BoldCheck?.IsChecked ?? false;
+        item.IsItalic = ItalicCheck?.IsChecked ?? false;
+        ApplyPreviewFormatting(item);
+    }
+
+    private void ApplyPreviewFormatting(LabelText item)
+    {
+        if (PreviewText is null) return;
+        PreviewText.FontSize = item.FontSizePt;
+        PreviewText.FontWeight = item.IsBold ? global::Avalonia.Media.FontWeight.Bold : global::Avalonia.Media.FontWeight.Normal;
+        PreviewText.FontStyle = item.IsItalic ? global::Avalonia.Media.FontStyle.Italic : global::Avalonia.Media.FontStyle.Normal;
     }
 
     private async void PrintClicked(object? sender, RoutedEventArgs e)

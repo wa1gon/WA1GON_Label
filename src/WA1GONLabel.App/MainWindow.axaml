@@ -21,7 +21,6 @@
         <Border Background="White" BorderBrush="#ADB4BB" BorderThickness="1" Width="500" Height="143" MaxWidth="500" HorizontalAlignment="Center" CornerRadius="2" Padding="22">
           <TextBox Name="PreviewText"
                    Text="Hello from WA1GONLabel"
-                   FontSize="22"
                    Foreground="Black"
                    TextWrapping="Wrap"
                    AcceptsReturn="True"
@@ -31,6 +30,12 @@
                    BorderThickness="0"
                    TextChanged="TextChanged" />
         </Border>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
+          <TextBlock Text="Font size" VerticalAlignment="Center" />
+          <NumericUpDown Name="FontSizeInput" Minimum="6" Maximum="72" Value="14" Increment="1" Width="80" ValueChanged="FormatChanged" />
+          <CheckBox Name="BoldCheck" Content="Bold" Checked="FormatChanged" Unchecked="FormatChanged" />
+          <CheckBox Name="ItalicCheck" Content="Italic" Checked="FormatChanged" Unchecked="FormatChanged" />
+        </StackPanel>
         <TextBlock Text="Preview is illustrative; actual printer output depends on CUPS queue settings." Foreground="#515B66" TextWrapping="Wrap" HorizontalAlignment="Center" />
       </StackPanel>
     </Border>
