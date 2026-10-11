@@ -13,6 +13,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        if (PreviewText is not null && _label.TextItems.Count > 0)
+            _label.TextItems[0].Text = PreviewText.Text ?? "";
         Opened += async (_, _) => await RefreshPrintersAsync();
     }
 
@@ -36,9 +38,8 @@ public partial class MainWindow : Window
 
     private void TextChanged(object? sender, TextChangedEventArgs e)
     {
-        if (LabelTextInput is null || PreviewText is null) return;
-        PreviewText.Text = LabelTextInput.Text ?? "";
-        _label.TextItems[0].Text = LabelTextInput.Text ?? "";
+        if (PreviewText is null || _label.TextItems.Count == 0) return;
+        _label.TextItems[0].Text = PreviewText.Text ?? "";
     }
 
     private async void PrintClicked(object? sender, RoutedEventArgs e)

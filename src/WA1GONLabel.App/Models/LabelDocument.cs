@@ -17,7 +17,7 @@ public sealed class LabelDocument
 public sealed class LabelText
 {
     public string Text { get; set; } = "Hello from WA1GONLabel";
-    public double Xmm { get; set; } = 4;
-    public double Ymm { get; set; } = 4;
+    public double Xmm { get; set; } = 8; // leave room for DYMO left gutter
+    public double Ymm { get; set; } = 8; // leave room for DYMO 1.25x3.5 top gutter
     public double FontSizePt { get; set; } = 14;
 }
