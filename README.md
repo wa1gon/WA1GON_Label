@@ -1,4 +1,4 @@
-# OpenLabel
+# WA1GONLabel
 
 Cross-printer Linux label printing, built with .NET 10 and Avalonia UI.
 
@@ -26,7 +26,7 @@ If the DYMO queue isn't listed, configure the printer in your system's Printers 
 ## Run
 
 ```bash
-cd src/OpenLabel.App
+cd src/WA1GONLabel.App
 dotnet restore
 dotnet run
 ```

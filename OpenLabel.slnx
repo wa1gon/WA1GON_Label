@@ -1,8 +1,0 @@
-<Solution>
-  <Folder Name="/src/">
-    <Project Path="src/OpenLabel.App/OpenLabel.App.csproj" />
-  </Folder>
-  <Folder Name="/test/">
-    <Project Path="test/OpenLabel.App.Test/OpenLabel.App.Test.csproj" />
-  </Folder>
-</Solution>
