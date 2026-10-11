@@ -1,4 +1,7 @@
+using System.Text;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using WA1GONLabel.App.Models;
 using WA1GONLabel.App.Printing;
@@ -13,19 +16,13 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        if (_label.TextItems.Count > 0)
-        {
-            var item = _label.TextItems[0];
-            if (PreviewText is not null)
-                PreviewText.Text = item.Text;
-            ApplyPreviewFormatting(item);
-            if (FontSizeInput is not null)
-                FontSizeInput.Value = (decimal)item.FontSizePt;
-            if (BoldCheck is not null)
-                BoldCheck.IsChecked = item.IsBold;
-            if (ItalicCheck is not null)
-                ItalicCheck.IsChecked = item.IsItalic;
-        }
+        if (PreviewText is not null)
+            PreviewText.Text = _label.TextItems.FirstOrDefault()?.Text ?? "Hello from WA1GONLabel";
+        if (FontSizeInput is not null)
+            FontSizeInput.Value = (decimal)(_label.TextItems.FirstOrDefault()?.FontSizePt ?? 14);
+        if (PreviewText is not null)
+            PreviewText.FontSize = _label.TextItems.FirstOrDefault()?.FontSizePt ?? 14;
+        UpdateDocumentFromPreview();
         Opened += async (_, _) => await RefreshPrintersAsync();
     }
 
@@ -47,39 +44,138 @@ public partial class MainWindow : Window
 
     private async void RefreshClicked(object? sender, RoutedEventArgs e) => await RefreshPrintersAsync();
 
-    private void TextChanged(object? sender, TextChangedEventArgs e)
+    private void TextChanged(object? sender, TextChangedEventArgs e) => UpdateDocumentFromPreview();
+
+    private void FontSizeChanged(object? sender, NumericUpDownValueChangedEventArgs e)
     {
-        if (PreviewText is null || _label.TextItems.Count == 0) return;
-        _label.TextItems[0].Text = PreviewText.Text ?? "";
+        var size = (double)(FontSizeInput?.Value ?? 14);
+        if (PreviewText is not null)
+            PreviewText.FontSize = size;
+        UpdateDocumentFromPreview();
     }
 
-    private void FormatChanged(object? sender, RoutedEventArgs e)
-    {
-        if (_label.TextItems.Count == 0) return;
-        ApplyFormatToDocument();
-    }
-
-    private void FormatChanged(object? sender, NumericUpDownValueChangedEventArgs e)
-    {
-        if (_label.TextItems.Count == 0) return;
-        ApplyFormatToDocument();
-    }
-
-    private void ApplyFormatToDocument()
-    {
-        var item = _label.TextItems[0];
-        item.FontSizePt = (double)(FontSizeInput?.Value ?? 14);
-        item.IsBold = BoldCheck?.IsChecked ?? false;
-        item.IsItalic = ItalicCheck?.IsChecked ?? false;
-        ApplyPreviewFormatting(item);
-    }
-
-    private void ApplyPreviewFormatting(LabelText item)
+    private void UpdateDocumentFromPreview()
     {
         if (PreviewText is null) return;
-        PreviewText.FontSize = item.FontSizePt;
-        PreviewText.FontWeight = item.IsBold ? global::Avalonia.Media.FontWeight.Bold : global::Avalonia.Media.FontWeight.Normal;
-        PreviewText.FontStyle = item.IsItalic ? global::Avalonia.Media.FontStyle.Italic : global::Avalonia.Media.FontStyle.Normal;
+        var size = (double)(FontSizeInput?.Value ?? 14);
+        var x = _label.TextItems.FirstOrDefault()?.Xmm ?? 8;
+        var y = _label.TextItems.FirstOrDefault()?.Ymm ?? 8;
+        _label.TextItems = ParseMarkup(PreviewText.Text ?? "", size, x, y);
+        UpdateFormattedPreview();
+    }
+
+    private void UpdateFormattedPreview()
+    {
+        if (FormattedPreview is null) return;
+        FormattedPreview!.Inlines.Clear();
+        foreach (var run in _label.TextItems)
+        {
+            var inline = new Run { Text = run.Text };
+            if (run.IsBold)
+                inline.FontWeight = global::Avalonia.Media.FontWeight.Bold;
+            if (run.IsItalic)
+                inline.FontStyle = global::Avalonia.Media.FontStyle.Italic;
+            inline.FontSize = run.FontSizePt;
+            FormattedPreview!.Inlines.Add(inline);
+        }
+    }
+
+    private static List<LabelText> ParseMarkup(string text, double fontSize, double x, double y)
+    {
+        var runs = new List<LabelText>();
+        var current = new StringBuilder();
+        var bold = false;
+        var italic = false;
+        var i = 0;
+
+        void Flush()
+        {
+            if (current.Length <= 0) return;
+            runs.Add(new LabelText
+            {
+                Text = current.ToString(),
+                Xmm = x,
+                Ymm = y,
+                FontSizePt = fontSize,
+                IsBold = bold,
+                IsItalic = italic
+            });
+            current.Clear();
+        }
+
+        while (i < text.Length)
+        {
+            if (text[i] == '<')
+            {
+                var end = text.IndexOf('>', i);
+                if (end < 0)
+                {
+                    current.Append(text[i]);
+                    i++;
+                    continue;
+                }
+                var tag = text[(i + 1)..end].Trim();
+                Flush();
+                if (tag.StartsWith('/'))
+                {
+                    var name = tag[1..].ToLowerInvariant();
+                    if (name == "b") bold = false;
+                    else if (name == "i") italic = false;
+                }
+                else
+                {
+                    var name = tag.ToLowerInvariant();
+                    if (name == "b") bold = true;
+                    else if (name == "i") italic = true;
+                }
+                i = end + 1;
+            }
+            else
+            {
+                current.Append(text[i]);
+                i++;
+            }
+        }
+        Flush();
+        return runs;
+    }
+
+    private void PreviewText_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (PreviewText is null) return;
+        if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
+        if (e.Key == Key.B)
+        {
+            SurroundSelection("<b>", "</b>");
+            e.Handled = true;
+        }
+        else if (e.Key == Key.I)
+        {
+            SurroundSelection("<i>", "</i>");
+            e.Handled = true;
+        }
+    }
+
+    private void SurroundSelection(string openTag, string closeTag)
+    {
+        if (PreviewText is null) return;
+        var text = PreviewText.Text ?? "";
+        var start = Math.Min(PreviewText.SelectionStart, PreviewText.SelectionEnd);
+        var end = Math.Max(PreviewText.SelectionStart, PreviewText.SelectionEnd);
+        if (start == end)
+        {
+            PreviewText.Text = text[..start] + openTag + closeTag + text[end..];
+            PreviewText.CaretIndex = start + openTag.Length;
+        }
+        else
+        {
+            var before = text[..start];
+            var selected = text[start..end];
+            var after = text[end..];
+            PreviewText.Text = before + openTag + selected + closeTag + after;
+            PreviewText.SelectionStart = start + openTag.Length;
+            PreviewText.SelectionEnd = start + openTag.Length + selected.Length;
+        }
     }
 
     private async void PrintClicked(object? sender, RoutedEventArgs e)

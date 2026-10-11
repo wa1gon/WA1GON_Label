@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using SkiaSharp;
 using WA1GONLabel.App.Models;
 
 namespace WA1GONLabel.App.Printing;
@@ -75,11 +76,13 @@ public sealed class CupsPrinterBackend : IPrinterBackend
     }
 }
 
-// Dependency-free proof-of-concept PDF. Supports basic ASCII and Helvetica variants only.
+// Proof-of-concept PDF. Supports basic ASCII and Helvetica variants with simple word-wrapping.
 // Later milestones will replace this with a proper rendering pipeline.
 internal static class MinimalPdfRenderer
 {
     private record FontDef(string Name, string BaseFont);
+    private record PlacedWord(string Text, LabelText Item, double X);
+    private record TextToken(string Text, LabelText Item, bool IsNewLine);
 
     public static byte[] Render(LabelDocument label)
     {
@@ -92,6 +95,18 @@ internal static class MinimalPdfRenderer
             (false, true) => "F3",
             (false, false) => "F1"
         };
+        static double Measure(TextToken t)
+        {
+            var family = SKTypeface.FromFamilyName("Liberation Sans")
+                      ?? SKTypeface.FromFamilyName("DejaVu Sans")
+                      ?? SKTypeface.FromFamilyName("Helvetica")
+                      ?? SKTypeface.FromFamilyName(null);
+            var weight = t.Item.IsBold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal;
+            var slant = t.Item.IsItalic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright;
+            var typeface = SKTypeface.FromFamilyName(family.FamilyName, weight, SKFontStyleWidth.Normal, slant) ?? family;
+            using var paint = new SKPaint { Typeface = typeface, TextSize = (float)t.Item.FontSizePt, IsAntialias = true };
+            return paint.MeasureText(t.Text);
+        }
 
         var w = label.WidthMm * 72 / 25.4;
         var h = label.HeightMm * 72 / 25.4;
@@ -107,14 +122,90 @@ internal static class MinimalPdfRenderer
         var resourceEntries = string.Join(" ", fonts.Select((f, i) => $"/{f.Name} {4 + i} 0 R"));
         var contentObjectNumber = 4 + fonts.Length;
 
-        var stream = new StringBuilder();
+        var xBase = label.TextItems.FirstOrDefault()?.Xmm * 72 / 25.4 ?? 0;
+        var yBase = label.TextItems.FirstOrDefault()?.Ymm * 72 / 25.4 ?? 0;
+        var rightMargin = xBase; // mirror left margin
+        var maxX = w - rightMargin;
+        const double lineSpacing = 1.2;
+
+        var tokens = new List<TextToken>();
         foreach (var item in label.TextItems)
         {
-            var x = item.Xmm * 72 / 25.4;
-            var y = h - item.Ymm * 72 / 25.4 - item.FontSizePt;
-            var safe = new string(item.Text.Where(c => c >= 32 && c <= 126).ToArray());
-            stream.AppendLine($"BT /{FontName(item.IsBold, item.IsItalic)} {Num(item.FontSizePt)} Tf 1 0 0 1 {Num(x)} {Num(y)} Tm ({Escape(safe)}) Tj ET");
+            var text = item.Text ?? "";
+            var i = 0;
+            while (i < text.Length)
+            {
+                if (text[i] == '\r' && i + 1 < text.Length && text[i + 1] == '\n')
+                {
+                    tokens.Add(new TextToken("\n", item, true));
+                    i += 2;
+                }
+                else if (text[i] == '\n')
+                {
+                    tokens.Add(new TextToken("\n", item, true));
+                    i++;
+                }
+                else if (char.IsWhiteSpace(text[i]))
+                {
+                    var start = i;
+                    while (i < text.Length && char.IsWhiteSpace(text[i]) && text[i] != '\r' && text[i] != '\n')
+                        i++;
+                    tokens.Add(new TextToken(text[start..i], item, false));
+                }
+                else
+                {
+                    var start = i;
+                    while (i < text.Length && !char.IsWhiteSpace(text[i]))
+                        i++;
+                    tokens.Add(new TextToken(text[start..i], item, false));
+                }
+            }
         }
+
+        var stream = new StringBuilder();
+        var line = new List<PlacedWord>();
+        var lineTop = yBase;
+        var currentX = xBase;
+        var currentLineMaxSize = 0.0;
+
+        void FlushLine()
+        {
+            if (line.Count == 0) return;
+            var baseline = lineTop + currentLineMaxSize;
+            var y = h - baseline;
+            foreach (var word in line)
+            {
+                var safe = new string(word.Text.Where(c => c >= 32 && c <= 126).ToArray());
+                stream.AppendLine($"BT /{FontName(word.Item.IsBold, word.Item.IsItalic)} {Num(word.Item.FontSizePt)} Tf 1 0 0 1 {Num(word.X)} {Num(y)} Tm ({Escape(safe)}) Tj ET");
+            }
+            lineTop += currentLineMaxSize * lineSpacing;
+            line.Clear();
+            currentX = xBase;
+            currentLineMaxSize = 0;
+        }
+
+        foreach (var token in tokens)
+        {
+            if (token.IsNewLine)
+            {
+                FlushLine();
+                continue;
+            }
+
+            // skip whitespace at the start of a line
+            if (currentX <= xBase && token.Text.Trim().Length == 0)
+                continue;
+
+            var wordWidth = Measure(token);
+            if (currentX + wordWidth > maxX && currentX > xBase)
+                FlushLine();
+
+            line.Add(new PlacedWord(token.Text, token.Item, currentX));
+            currentX += wordWidth;
+            if (token.Item.FontSizePt > currentLineMaxSize)
+                currentLineMaxSize = token.Item.FontSizePt;
+        }
+        FlushLine();
 
         var content = Encoding.ASCII.GetBytes(stream.ToString());
 

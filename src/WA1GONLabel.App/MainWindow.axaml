@@ -9,7 +9,7 @@
       <Button Name="RefreshButton" Content="Refresh printers" Click="RefreshClicked" />
       <TextBlock Text="Label size" FontWeight="SemiBold" />
       <TextBlock Text="3.5 × 1 inches (88.9 × 25.4 mm)" />
-      <TextBlock Text="Edit the preview on the right" Foreground="Gray" TextWrapping="Wrap" />
+      <TextBlock Text="Use Ctrl+B / Ctrl+I for bold/italic. &lt;b&gt; and &lt;i&gt; tags wrap selected text." Foreground="Gray" TextWrapping="Wrap" />
       <TextBlock Text="Copies" FontWeight="SemiBold" />
       <NumericUpDown Name="CopiesInput" Minimum="1" Maximum="100" Value="1" Increment="1" />
       <Button Name="PrintButton" Content="Print label" Click="PrintClicked" MinHeight="42" />
@@ -18,23 +18,29 @@
     <Border Grid.Column="1" Background="#EDEFF1" CornerRadius="10" Padding="22">
       <StackPanel VerticalAlignment="Center" Spacing="18">
         <TextBlock Text="Label preview" FontSize="18" FontWeight="SemiBold" Foreground="#30343A" HorizontalAlignment="Center" />
-        <Border Background="White" BorderBrush="#ADB4BB" BorderThickness="1" Width="500" Height="143" MaxWidth="500" HorizontalAlignment="Center" CornerRadius="2" Padding="22">
-          <TextBox Name="PreviewText"
-                   Text="Hello from WA1GONLabel"
-                   Foreground="Black"
-                   TextWrapping="Wrap"
-                   AcceptsReturn="True"
-                   VerticalAlignment="Center"
-                   VerticalContentAlignment="Center"
-                   Background="Transparent"
-                   BorderThickness="0"
-                   TextChanged="TextChanged" />
+        <Border Background="White" BorderBrush="#ADB4BB" BorderThickness="1" Width="500" Height="200" MaxWidth="500" HorizontalAlignment="Center" CornerRadius="2" Padding="22">
+          <Grid RowDefinitions="*,Auto" RowSpacing="8">
+            <TextBlock Name="FormattedPreview"
+                       Foreground="Black"
+                       TextWrapping="Wrap"
+                       VerticalAlignment="Center" />
+            <TextBox Grid.Row="1"
+                     Name="PreviewText"
+                     Text="Hello from WA1GONLabel"
+                     Foreground="Black"
+                     TextWrapping="Wrap"
+                     AcceptsReturn="True"
+                     VerticalAlignment="Center"
+                     VerticalContentAlignment="Center"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     TextChanged="TextChanged"
+                     KeyDown="PreviewText_KeyDown" />
+          </Grid>
         </Border>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
           <TextBlock Text="Font size" VerticalAlignment="Center" />
-          <NumericUpDown Name="FontSizeInput" Minimum="6" Maximum="72" Value="14" Increment="1" Width="80" ValueChanged="FormatChanged" />
-          <CheckBox Name="BoldCheck" Content="Bold" Checked="FormatChanged" Unchecked="FormatChanged" />
-          <CheckBox Name="ItalicCheck" Content="Italic" Checked="FormatChanged" Unchecked="FormatChanged" />
+          <NumericUpDown Name="FontSizeInput" Minimum="6" Maximum="72" Value="14" Increment="1" Width="80" ValueChanged="FontSizeChanged" />
         </StackPanel>
         <TextBlock Text="Preview is illustrative; actual printer output depends on CUPS queue settings." Foreground="#515B66" TextWrapping="Wrap" HorizontalAlignment="Center" />
       </StackPanel>
