@@ -1,50 +1,60 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="WA1GONLabel.App.MainWindow" Title="WA1GONLabel" Width="900" Height="560" MinWidth="700" MinHeight="420">
-  <Grid ColumnDefinitions="300,*" RowDefinitions="*,Auto" Margin="18" ColumnSpacing="24" RowSpacing="12">
-    <StackPanel Grid.Column="0" Spacing="12">
-      <TextBlock Text="WA1GONLabel" FontSize="26" FontWeight="Bold" />
-      <TextBlock Text="Milestone 1 · CUPS label printing" Foreground="Gray" />
-      <TextBlock Text="Printer" FontWeight="SemiBold" />
-      <ComboBox Name="PrinterSelector" MinHeight="36" />
-      <Button Name="RefreshButton" Content="Refresh printers" Click="RefreshClicked" />
-      <TextBlock Text="Label size" FontWeight="SemiBold" />
-      <TextBlock Text="3.5 × 1 inches (88.9 × 25.4 mm)" />
-      <TextBlock Text="Use Ctrl+B / Ctrl+I for bold/italic. &lt;b&gt; and &lt;i&gt; tags wrap selected text." Foreground="Gray" TextWrapping="Wrap" />
-      <TextBlock Text="Copies" FontWeight="SemiBold" />
-      <NumericUpDown Name="CopiesInput" Minimum="1" Maximum="100" Value="1" Increment="1" />
-      <Button Name="PrintButton" Content="Print label" Click="PrintClicked" MinHeight="42" />
-      <TextBlock Name="StatusText" Text="Ready" TextWrapping="Wrap" />
-    </StackPanel>
-    <Border Grid.Column="1" Background="#EDEFF1" CornerRadius="10" Padding="22">
+        x:Class="WA1GONLabel.App.MainWindow" Title="WA1GONLabel" Background="#0B0F19" Width="900" Height="620" MinWidth="840" MinHeight="620">
+  <Grid ColumnDefinitions="260,*" RowDefinitions="*,Auto" Margin="24" ColumnSpacing="24" RowSpacing="16">
+    <Border Grid.Column="0" Background="#151A27" BorderBrush="#1E2533" BorderThickness="1" CornerRadius="16" Padding="24" BoxShadow="0 8 32 0 #00000055">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="12">
+          <StackPanel Spacing="2">
+            <TextBlock Text="WA1GONLabel" FontSize="24" FontWeight="Bold" Foreground="White" />
+            <TextBlock Text="CUPS label printing" FontSize="12" Foreground="#9CA3AF" />
+          </StackPanel>
+          <TextBlock Text="Settings" FontSize="12" FontWeight="SemiBold" Foreground="#6B7280" />
+          <TextBlock Text="Printer" FontSize="14" FontWeight="SemiBold" Foreground="#E5E7EB" />
+          <ComboBox Name="PrinterSelector" MinHeight="36" Background="#1E2533" BorderBrush="#374151" Foreground="White" />
+          <Button Name="RefreshButton" Content="Refresh printers" Click="RefreshClicked" HorizontalAlignment="Left" Background="#374151" Foreground="White" CornerRadius="6" />
+          <TextBlock Text="Label size" FontSize="14" FontWeight="SemiBold" Foreground="#E5E7EB" />
+          <TextBlock Text="3.5 × 1 inches (88.9 × 25.4 mm)" Foreground="#9CA3AF" />
+          <TextBlock Text="Use Ctrl+B / Ctrl/I for bold/italic. &lt;b&gt; and &lt;i&gt; tags wrap selected text." Foreground="#6B7280" TextWrapping="Wrap" />
+          <TextBlock Text="Copies" FontSize="14" FontWeight="SemiBold" Foreground="#E5E7EB" />
+          <NumericUpDown Name="CopiesInput" Minimum="1" Maximum="100" Value="1" Increment="1" Background="#1E2533" BorderBrush="#374151" Foreground="White" />
+          <Button Name="PrintButton" Content="Print label" Click="PrintClicked" MinHeight="46" HorizontalAlignment="Stretch" Background="#3B82F6" Foreground="White" CornerRadius="6" FontWeight="SemiBold" FontSize="14" />
+          <TextBlock Name="StatusText" Text="Ready" TextWrapping="Wrap" Foreground="#6B7280" />
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+    <Border Grid.Column="1" Background="#151A27" BorderBrush="#1E2533" BorderThickness="1" CornerRadius="16" Padding="24" BoxShadow="0 8 32 0 #00000055">
       <StackPanel VerticalAlignment="Center" Spacing="18">
-        <TextBlock Text="Label preview" FontSize="18" FontWeight="SemiBold" Foreground="#30343A" HorizontalAlignment="Center" />
-        <Border Background="White" BorderBrush="#ADB4BB" BorderThickness="1" Width="500" Height="200" MaxWidth="500" HorizontalAlignment="Center" CornerRadius="2" Padding="22">
-          <Grid RowDefinitions="*,Auto" RowSpacing="8">
-            <TextBlock Name="FormattedPreview"
-                       Foreground="Black"
-                       TextWrapping="Wrap"
-                       VerticalAlignment="Center" />
-            <TextBox Grid.Row="1"
-                     Name="PreviewText"
-                     Text="Hello from WA1GONLabel"
+        <TextBlock Text="Label preview" FontSize="20" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" />
+        <Border Background="White" BorderBrush="#D1D5DB" BorderThickness="1" Height="220" MaxWidth="500" MinWidth="300" HorizontalAlignment="Stretch" CornerRadius="8" Padding="22" ClipToBounds="True" BoxShadow="0 4 16 0 #00000044">
+          <TextBlock Name="FormattedPreview"
                      Foreground="Black"
                      TextWrapping="Wrap"
-                     AcceptsReturn="True"
                      VerticalAlignment="Center"
-                     VerticalContentAlignment="Center"
-                     Background="Transparent"
-                     BorderThickness="0"
-                     TextChanged="TextChanged"
-                     KeyDown="PreviewText_KeyDown" />
-          </Grid>
+                     HorizontalAlignment="Stretch" />
         </Border>
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
-          <TextBlock Text="Font size" VerticalAlignment="Center" />
-          <NumericUpDown Name="FontSizeInput" Minimum="6" Maximum="72" Value="14" Increment="1" Width="80" ValueChanged="FontSizeChanged" />
-        </StackPanel>
-        <TextBlock Text="Preview is illustrative; actual printer output depends on CUPS queue settings." Foreground="#515B66" TextWrapping="Wrap" HorizontalAlignment="Center" />
+        <TextBox Name="PreviewText"
+                 Text="Hello from WA1GONLabel"
+                 Watermark="Label text"
+                 UseFloatingWatermark="True"
+                 TextWrapping="Wrap"
+                 AcceptsReturn="True"
+                 VerticalContentAlignment="Top"
+                 Height="80"
+                 CornerRadius="6"
+                 Padding="10"
+                 Background="#1E2533"
+                 BorderBrush="#374151"
+                 TextChanged="TextChanged"
+                 KeyDown="PreviewText_KeyDown" />
+        <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center">
+          <TextBlock Text="Font size" VerticalAlignment="Center" Foreground="#D1D5DB" Margin="0,0,12,0" />
+          <NumericUpDown Name="FontSizeInput" Minimum="6" Maximum="72" Value="14" Increment="1" Width="80" ValueChanged="FontSizeChanged" Background="#1E2533" BorderBrush="#374151" Foreground="White" Margin="0,0,12,0" />
+          <CheckBox Name="CenterVerticalCheck" Content="Center vertically" Checked="VerticalAlignmentChanged" Unchecked="VerticalAlignmentChanged" Foreground="#D1D5DB" Margin="0,0,12,0" />
+          <CheckBox Name="CenterHorizontalCheck" Content="Center horizontally" Checked="HorizontalAlignmentChanged" Unchecked="HorizontalAlignmentChanged" Foreground="#D1D5DB" Margin="0,0,12,0" />
+        </WrapPanel>
+        <TextBlock Text="Preview is illustrative; actual printer output depends on CUPS queue settings." Foreground="#6B7280" TextWrapping="Wrap" HorizontalAlignment="Center" />
       </StackPanel>
     </Border>
-    <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="WA1GONLabel · Printer-independent document model · Linux CUPS backend" Foreground="Gray" />
+    <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="WA1GONLabel · Printer-independent document model · Linux CUPS backend" Foreground="#4B5563" HorizontalAlignment="Center" FontSize="12" />
   </Grid>
 </Window>

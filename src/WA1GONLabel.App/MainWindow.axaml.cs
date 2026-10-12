@@ -22,6 +22,12 @@ public partial class MainWindow : Window
             FontSizeInput.Value = (decimal)(_label.TextItems.FirstOrDefault()?.FontSizePt ?? 14);
         if (PreviewText is not null)
             PreviewText.FontSize = _label.TextItems.FirstOrDefault()?.FontSizePt ?? 14;
+        if (CenterVerticalCheck is not null)
+            CenterVerticalCheck.IsChecked = _label.CenterVertical;
+        if (CenterHorizontalCheck is not null)
+            CenterHorizontalCheck.IsChecked = _label.CenterHorizontal;
+        ApplyVerticalAlignment();
+        ApplyHorizontalAlignment();
         UpdateDocumentFromPreview();
         Opened += async (_, _) => await RefreshPrintersAsync();
     }
@@ -60,8 +66,40 @@ public partial class MainWindow : Window
         var size = (double)(FontSizeInput?.Value ?? 14);
         var x = _label.TextItems.FirstOrDefault()?.Xmm ?? 8;
         var y = _label.TextItems.FirstOrDefault()?.Ymm ?? 8;
+        _label.CenterVertical = CenterVerticalCheck?.IsChecked ?? false;
+        _label.CenterHorizontal = CenterHorizontalCheck?.IsChecked ?? false;
         _label.TextItems = ParseMarkup(PreviewText.Text ?? "", size, x, y);
         UpdateFormattedPreview();
+    }
+
+    private void VerticalAlignmentChanged(object? sender, RoutedEventArgs e)
+    {
+        _label.CenterVertical = CenterVerticalCheck?.IsChecked ?? false;
+        ApplyVerticalAlignment();
+    }
+
+    private void HorizontalAlignmentChanged(object? sender, RoutedEventArgs e)
+    {
+        _label.CenterHorizontal = CenterHorizontalCheck?.IsChecked ?? false;
+        ApplyHorizontalAlignment();
+    }
+
+    private void ApplyVerticalAlignment()
+    {
+        var center = _label.CenterVertical;
+        if (FormattedPreview is not null)
+        {
+            FormattedPreview.VerticalAlignment = center ? global::Avalonia.Layout.VerticalAlignment.Center : global::Avalonia.Layout.VerticalAlignment.Top;
+            // Align the first line to the top of the preview without clipping.
+            FormattedPreview.Margin = center ? new global::Avalonia.Thickness(0) : new global::Avalonia.Thickness(0, -11 - 0.1 * 96, 0, 0);
+        }
+    }
+
+    private void ApplyHorizontalAlignment()
+    {
+        var center = _label.CenterHorizontal;
+        if (FormattedPreview is not null)
+            FormattedPreview.TextAlignment = center ? global::Avalonia.Media.TextAlignment.Center : global::Avalonia.Media.TextAlignment.Left;
     }
 
     private void UpdateFormattedPreview()

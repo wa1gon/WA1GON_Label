@@ -81,7 +81,8 @@ public sealed class CupsPrinterBackend : IPrinterBackend
 internal static class MinimalPdfRenderer
 {
     private record FontDef(string Name, string BaseFont);
-    private record PlacedWord(string Text, LabelText Item, double X);
+    private record PlacedWord(string Text, LabelText Item, double X, double Width);
+    private record PlacedLine(List<PlacedWord> Words, double MaxFontSize, double Top);
     private record TextToken(string Text, LabelText Item, bool IsNewLine);
 
     public static byte[] Render(LabelDocument label)
@@ -123,10 +124,13 @@ internal static class MinimalPdfRenderer
         var contentObjectNumber = 4 + fonts.Length;
 
         var xBase = label.TextItems.FirstOrDefault()?.Xmm * 72 / 25.4 ?? 0;
-        var yBase = label.TextItems.FirstOrDefault()?.Ymm * 72 / 25.4 ?? 0;
         var rightMargin = xBase; // mirror left margin
         var maxX = w - rightMargin;
         const double lineSpacing = 1.2;
+
+        // The first line always starts at the very top of the label.
+        // If centering is on, the whole laid-out block is shifted down to be centered.
+        var yBase = 0.0;
 
         var tokens = new List<TextToken>();
         foreach (var item in label.TextItems)
@@ -162,7 +166,7 @@ internal static class MinimalPdfRenderer
             }
         }
 
-        var stream = new StringBuilder();
+        var lines = new List<PlacedLine>();
         var line = new List<PlacedWord>();
         var lineTop = yBase;
         var currentX = xBase;
@@ -171,15 +175,9 @@ internal static class MinimalPdfRenderer
         void FlushLine()
         {
             if (line.Count == 0) return;
-            var baseline = lineTop + currentLineMaxSize;
-            var y = h - baseline;
-            foreach (var word in line)
-            {
-                var safe = new string(word.Text.Where(c => c >= 32 && c <= 126).ToArray());
-                stream.AppendLine($"BT /{FontName(word.Item.IsBold, word.Item.IsItalic)} {Num(word.Item.FontSizePt)} Tf 1 0 0 1 {Num(word.X)} {Num(y)} Tm ({Escape(safe)}) Tj ET");
-            }
+            lines.Add(new PlacedLine(line, currentLineMaxSize, lineTop));
+            line = new List<PlacedWord>();
             lineTop += currentLineMaxSize * lineSpacing;
-            line.Clear();
             currentX = xBase;
             currentLineMaxSize = 0;
         }
@@ -200,12 +198,34 @@ internal static class MinimalPdfRenderer
             if (currentX + wordWidth > maxX && currentX > xBase)
                 FlushLine();
 
-            line.Add(new PlacedWord(token.Text, token.Item, currentX));
+            line.Add(new PlacedWord(token.Text, token.Item, currentX, wordWidth));
             currentX += wordWidth;
             if (token.Item.FontSizePt > currentLineMaxSize)
                 currentLineMaxSize = token.Item.FontSizePt;
         }
         FlushLine();
+
+        var blockHeight = lineTop - yBase;
+        var yOffset = label.CenterVertical ? (h - blockHeight) / 2 - yBase : 0;
+
+        var stream = new StringBuilder();
+        foreach (var placed in lines)
+        {
+            var baseline = placed.Top + placed.MaxFontSize + yOffset - (label.CenterVertical ? 0.0 : 0.1 * 72);
+            var y = h - baseline;
+            var xOffset = 0.0;
+            if (label.CenterHorizontal && placed.Words.Count > 0)
+            {
+                var last = placed.Words[^1];
+                var lineWidth = last.X + last.Width - xBase;
+                xOffset = Math.Max(0, (maxX - xBase - lineWidth) / 2);
+            }
+            foreach (var word in placed.Words)
+            {
+                var safe = new string(word.Text.Where(c => c >= 32 && c <= 126).ToArray());
+                stream.AppendLine($"BT /{FontName(word.Item.IsBold, word.Item.IsItalic)} {Num(word.Item.FontSizePt)} Tf 1 0 0 1 {Num(word.X + xOffset)} {Num(y)} Tm ({Escape(safe)}) Tj ET");
+            }
+        }
 
         var content = Encoding.ASCII.GetBytes(stream.ToString());
 
