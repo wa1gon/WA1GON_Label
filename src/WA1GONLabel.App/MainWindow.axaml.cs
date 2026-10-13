@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using WA1GONLabel.App.Models;
 using WA1GONLabel.App.Printing;
 
@@ -11,24 +12,12 @@ namespace WA1GONLabel.App;
 public partial class MainWindow : Window
 {
     private readonly IPrinterBackend _printers = new CupsPrinterBackend();
-    private readonly LabelDocument _label = new();
+    private LabelDocument _label = new();
 
     public MainWindow()
     {
         InitializeComponent();
-        if (PreviewText is not null)
-            PreviewText.Text = _label.TextItems.FirstOrDefault()?.Text ?? "Hello from WA1GONLabel";
-        if (FontSizeInput is not null)
-            FontSizeInput.Value = (decimal)(_label.TextItems.FirstOrDefault()?.FontSizePt ?? 14);
-        if (PreviewText is not null)
-            PreviewText.FontSize = _label.TextItems.FirstOrDefault()?.FontSizePt ?? 14;
-        if (CenterVerticalCheck is not null)
-            CenterVerticalCheck.IsChecked = _label.CenterVertical;
-        if (CenterHorizontalCheck is not null)
-            CenterHorizontalCheck.IsChecked = _label.CenterHorizontal;
-        ApplyVerticalAlignment();
-        ApplyHorizontalAlignment();
-        UpdateDocumentFromPreview();
+        ApplyDocumentToUI();
         Opened += async (_, _) => await RefreshPrintersAsync();
     }
 
@@ -82,6 +71,24 @@ public partial class MainWindow : Window
     {
         _label.CenterHorizontal = CenterHorizontalCheck?.IsChecked ?? false;
         ApplyHorizontalAlignment();
+    }
+
+    private void ApplyDocumentToUI()
+    {
+        var first = _label.TextItems.FirstOrDefault();
+        if (PreviewText is not null)
+            PreviewText.Text = first?.Text ?? "Hello from WA1GONLabel";
+        if (FontSizeInput is not null)
+            FontSizeInput.Value = (decimal)(first?.FontSizePt ?? 14);
+        if (PreviewText is not null)
+            PreviewText.FontSize = first?.FontSizePt ?? 14;
+        if (CenterVerticalCheck is not null)
+            CenterVerticalCheck.IsChecked = _label.CenterVertical;
+        if (CenterHorizontalCheck is not null)
+            CenterHorizontalCheck.IsChecked = _label.CenterHorizontal;
+        ApplyVerticalAlignment();
+        ApplyHorizontalAlignment();
+        UpdateDocumentFromPreview();
     }
 
     private void ApplyVerticalAlignment()
@@ -177,6 +184,50 @@ public partial class MainWindow : Window
         Flush();
         return runs;
     }
+
+    private async void SaveClicked(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var file = await this.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "Save Label",
+                SuggestedFileName = "label.json",
+                DefaultExtension = "json",
+                FileTypeChoices = new[] { new FilePickerFileType("Label document") { Patterns = new[] { "*.json" } } }
+            });
+            if (file is null) return;
+            await using var stream = await file.OpenWriteAsync();
+            using var writer = new StreamWriter(stream, Encoding.UTF8);
+            await writer.WriteAsync(_label.ToJson());
+            StatusText.Text = "Label saved.";
+        }
+        catch (Exception ex) { StatusText.Text = $"Save failed: {ex.Message}"; }
+    }
+
+    private async void LoadClicked(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var files = await this.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = "Load Label",
+                AllowMultiple = false,
+                FileTypeFilter = new[] { new FilePickerFileType("Label document") { Patterns = new[] { "*.json" } } }
+            });
+            if (files.Count == 0) return;
+            var file = files[0];
+            await using var stream = await file.OpenReadAsync();
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            var json = await reader.ReadToEndAsync();
+            _label = LabelDocument.FromJson(json);
+            ApplyDocumentToUI();
+            StatusText.Text = "Label loaded.";
+        }
+        catch (Exception ex) { StatusText.Text = $"Load failed: {ex.Message}"; }
+    }
+
+    private void ExitClicked(object? sender, RoutedEventArgs e) => Close();
 
     private void PreviewText_KeyDown(object? sender, KeyEventArgs e)
     {
