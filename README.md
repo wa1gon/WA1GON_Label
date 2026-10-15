@@ -31,6 +31,46 @@ dotnet restore
 dotnet run
 ```
 
+## Deploy
+
+Publish a self-contained single-file executable for Linux from the app project:
+
+```bash
+cd src/WA1GONLabel.App
+dotnet publish -p:PublishProfile=linux-x64
+```
+
+The published output is a single executable, `bin/Release/net10.0/linux-x64/publish/WA1GONLabel.App`, and can be run directly on a 64-bit Linux machine, including Linux Mint and Ubuntu.
+
+### Install to `/usr/local/bin`
+
+Use the provided install script to publish and copy the binary as `wa1gonlabel`:
+
+```bash
+./install.sh
+```
+
+Or manually:
+
+```bash
+cd src/WA1GONLabel.App
+dotnet publish -p:PublishProfile=linux-x64
+sudo cp bin/Release/net10.0/linux-x64/publish/WA1GONLabel.App /usr/local/bin/wa1gonlabel
+sudo chmod +x /usr/local/bin/wa1gonlabel
+```
+
+Then run it from anywhere:
+
+```bash
+wa1gonlabel
+```
+
+For ARM64 targets, use:
+
+```bash
+dotnet publish -p:PublishProfile=linux-arm64
+```
+
 Avalonia package versions are pinned in the project file. If NuGet cannot resolve a pinned version, update both Avalonia packages to a mutually compatible stable release.
 
 ## Important limitations

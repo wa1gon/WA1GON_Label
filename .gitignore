@@ -417,3 +417,8 @@ fabric.properties
 
 # Android studio 3.1+ serialized cache file
 .idea/caches/build_file_checksums.ser
+.aider*
+
+# Track Linux publish profiles; generic *.pubxml is ignored above.
+!src/WA1GONLabel.App/Properties/PublishProfiles/
+!src/WA1GONLabel.App/Properties/PublishProfiles/*.pubxml
